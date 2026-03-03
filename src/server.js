@@ -148,6 +148,28 @@ function isConfigured() {
   }
 }
 
+async function syncAllowedOrigins() {
+  const publicDomain = process.env.RAILWAY_PUBLIC_DOMAIN;
+  if (!publicDomain) return;
+
+  const origin = `https://${publicDomain}`;
+  const result = await runCmd(
+    OPENCLAW_NODE,
+    clawArgs([
+      "config",
+      "set",
+      "--json",
+      "gateway.controlUi.allowedOrigins",
+      JSON.stringify([origin]),
+    ]),
+  );
+  if (result.code === 0) {
+    log.info("gateway", `set allowedOrigins to [${origin}]`);
+  } else {
+    log.warn("gateway", `failed to set allowedOrigins (exit=${result.code})`);
+  }
+}
+
 let gatewayProc = null;
 let gatewayStarting = null;
 let shuttingDown = false;
@@ -264,6 +286,7 @@ async function ensureGatewayRunning() {
       if (!ready) {
         throw new Error("Gateway did not become ready in time");
       }
+      await syncAllowedOrigins();
     })().finally(() => {
       gatewayStarting = null;
     });
